@@ -148,6 +148,16 @@ CELERY_TIMEZONE = 'Asia/Tashkent'
 ESKIZ_EMAIL = config('ESKIZ_EMAIL', default='')
 ESKIZ_PASSWORD = config('ESKIZ_PASSWORD', default='')
 
+# ── Instagram / Meta API ─────────────────────────────────────────
+INSTAGRAM_APP_ID             = config('INSTAGRAM_APP_ID', default='')
+INSTAGRAM_APP_SECRET         = config('INSTAGRAM_APP_SECRET', default='')
+INSTAGRAM_ACCESS_TOKEN       = config('INSTAGRAM_ACCESS_TOKEN', default='')
+INSTAGRAM_ACCOUNT_ID         = config('INSTAGRAM_ACCOUNT_ID', default='')
+INSTAGRAM_WEBHOOK_VERIFY_TOKEN = config('INSTAGRAM_WEBHOOK_VERIFY_TOKEN', default='oquvmarkaz_webhook_secret_2024')
+
+# ── AI (Gemini) ──────────────────────────────────────────────────
+GEMINI_API_KEY = config('GEMINI_API_KEY', default='')
+
 # ── OpenAPI ──────────────────────────────────────────────────────
 SPECTACULAR_SETTINGS = {
     'TITLE': "O'quv Markazi CRM API",
