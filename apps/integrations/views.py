@@ -6,11 +6,11 @@ from rest_framework.response import Response
 from rest_framework.views import APIView
 from rest_framework.permissions import AllowAny
 from shared.permissions import IsAdminOrReception
-from .models import WebhookToken, AdStat, InstagramActivity
+from .models import WebhookToken, AdStat, InstagramActivity, TelegramActivity
 from .serializers import (
     WebhookTokenSerializer, AdStatSerializer,
     WebhookLeadPayloadSerializer, WebhookStatPayloadSerializer,
-    InstagramActivitySerializer,
+    InstagramActivitySerializer, TelegramActivitySerializer,
 )
 
 
@@ -196,6 +196,36 @@ class WebhookStatUpdateView(APIView):
         stat.save()
 
         return Response({'success': True})
+
+
+class TelegramActivityListView(generics.ListAPIView):
+    """Telegram bot faoliyat logi."""
+    permission_classes = (IsAdminOrReception,)
+    serializer_class   = TelegramActivitySerializer
+
+    def get_queryset(self):
+        qs = TelegramActivity.objects.select_related('lead').all()
+        status_filter = self.request.query_params.get('status')
+        if status_filter:
+            qs = qs.filter(status=status_filter)
+        return qs
+
+
+class TelegramSetupView(generics.GenericAPIView):
+    """Telegram webhook URL o'rnatish."""
+    permission_classes = (IsAdminOrReception,)
+
+    def post(self, request):
+        from .telegram_bot import setup_webhook, get_webhook_info
+        base_url = request.build_absolute_uri('/').rstrip('/')
+        result = setup_webhook(base_url)
+        info   = get_webhook_info()
+        return Response({'success': result.get('ok', False), 'result': result, 'info': info})
+
+    def get(self, request):
+        from .telegram_bot import get_webhook_info
+        info = get_webhook_info()
+        return Response({'success': True, 'info': info})
 
 
 class InstagramActivityListView(generics.ListAPIView):

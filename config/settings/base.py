@@ -155,6 +155,9 @@ INSTAGRAM_ACCESS_TOKEN       = config('INSTAGRAM_ACCESS_TOKEN', default='')
 INSTAGRAM_ACCOUNT_ID         = config('INSTAGRAM_ACCOUNT_ID', default='')
 INSTAGRAM_WEBHOOK_VERIFY_TOKEN = config('INSTAGRAM_WEBHOOK_VERIFY_TOKEN', default='oquvmarkaz_webhook_secret_2024')
 
+# ── Telegram Bot ─────────────────────────────────────────────────
+TELEGRAM_BOT_TOKEN = config('TELEGRAM_BOT_TOKEN', default='')
+
 # ── AI (Gemini) ──────────────────────────────────────────────────
 GEMINI_API_KEY = config('GEMINI_API_KEY', default='')
 

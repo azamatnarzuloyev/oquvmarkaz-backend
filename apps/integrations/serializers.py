@@ -1,5 +1,5 @@
 from rest_framework import serializers
-from .models import WebhookToken, AdStat, InstagramActivity
+from .models import WebhookToken, AdStat, InstagramActivity, TelegramActivity
 
 
 class WebhookTokenSerializer(serializers.ModelSerializer):
@@ -63,6 +63,21 @@ class InstagramActivitySerializer(serializers.ModelSerializer):
         fields = [
             'id', 'event_type', 'sender_id', 'sender_name',
             'message_text', 'ai_reply', 'status',
+            'lead_id', 'lead_name', 'lead_phone',
+            'created_at',
+        ]
+
+
+class TelegramActivitySerializer(serializers.ModelSerializer):
+    lead_name  = serializers.CharField(source='lead.full_name', read_only=True, default=None)
+    lead_phone = serializers.CharField(source='lead.phone',     read_only=True, default=None)
+    lead_id    = serializers.IntegerField(source='lead.id',     read_only=True, default=None)
+
+    class Meta:
+        model  = TelegramActivity
+        fields = [
+            'id', 'telegram_id', 'username', 'full_name',
+            'message_text', 'phone', 'status',
             'lead_id', 'lead_name', 'lead_phone',
             'created_at',
         ]

@@ -70,6 +70,38 @@ class InstagramActivity(models.Model):
         return f'{self.get_event_type_display()} — {self.sender_name or self.sender_id}'
 
 
+class TelegramActivity(models.Model):
+    """Telegram bot orqali kelgan xabarlar va leadlar logi."""
+
+    class Status(models.TextChoices):
+        WAITING      = 'waiting',      'Telefon kutilmoqda'
+        LEAD_CREATED = 'lead_created', 'Lead yaratildi'
+        DUPLICATE    = 'duplicate',    'Takroriy lead'
+        FAILED       = 'failed',       'Xato'
+
+    telegram_id   = models.BigIntegerField()
+    username      = models.CharField(max_length=100, blank=True)
+    full_name     = models.CharField(max_length=150, blank=True)
+    message_text  = models.TextField(blank=True)
+    phone         = models.CharField(max_length=20, blank=True)
+    status        = models.CharField(max_length=20, choices=Status.choices, default=Status.WAITING)
+    lead          = models.ForeignKey(
+        'leads.Lead',
+        null=True, blank=True,
+        on_delete=models.SET_NULL,
+        related_name='telegram_activities',
+    )
+    created_at    = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        verbose_name        = 'Telegram faoliyat'
+        verbose_name_plural = 'Telegram faoliyatlar'
+        ordering            = ['-created_at']
+
+    def __str__(self):
+        return f'{self.full_name or self.telegram_id} — {self.status}'
+
+
 class AdStat(models.Model):
     """Har kunlik reklama statistikasi (impressions + clicks)."""
 
