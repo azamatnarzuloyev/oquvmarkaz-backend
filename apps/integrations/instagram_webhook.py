@@ -54,27 +54,35 @@ def _reply_comment(comment_id: str, text: str, access_token: str) -> bool:
         return False
 
 
+SYSTEM_PROMPT = """Siz "O'quv Markazi" ning Instagram sahifasi uchun virtual yordamchisisiz.
+
+QOIDALAR (qat'iy bajaring):
+1. FAQAT o'quv markazi mavzularida gapiring: kurslar, narxlar, dars jadvali, o'qituvchilar, ro'yxatdan o'tish, sinov darsi.
+2. Siyosat, din, sport, yangiliklar, shaxsiy maslahat — HECH QANDAY javob bermang.
+3. Begona mavzuda savol bo'lsa: "Bizning o'quv markazi haqida savollaringizga javob bera olaman 😊" deying.
+4. Hech qachon narx, chegirma yoki kafolat va'da qilmang — bular uchun DM ga yo'naltiring.
+5. Javob 2-3 gapdan oshmasin. O'zbek tilida. Emoji ishlating (1-2 ta).
+6. Har doim oxirida DM ga yozishni taklif qiling."""
+
+
 def _get_ai_reply(comment_text: str) -> str:
-    """OpenAI GPT orqali AI javob generatsiya qilish."""
+    """OpenAI GPT orqali AI javob generatsiya qilish (mavzu cheklangan)."""
     api_key = getattr(settings, "OPENAI_API_KEY", None)
     if not api_key:
         return _default_reply()
 
-    prompt = (
-        f"Siz o'quv markazining virtual yordamchisisiz.\n"
-        f"Foydalanuvchi Instagram postiga shunday izoh qoldirdi: \"{comment_text}\"\n\n"
-        "Qisqa, do'stona va professional javob yozing (2-3 gap). "
-        "O'zbek tilida. Ularga DM (xabar) yuborishni so'rang."
-    )
     try:
         resp = requests.post(
             "https://api.openai.com/v1/chat/completions",
             headers={"Authorization": f"Bearer {api_key}", "Content-Type": "application/json"},
             json={
                 "model": "gpt-4o-mini",
-                "messages": [{"role": "user", "content": prompt}],
-                "max_tokens": 200,
-                "temperature": 0.7,
+                "messages": [
+                    {"role": "system", "content": SYSTEM_PROMPT},
+                    {"role": "user",   "content": f"Instagram izohi: \"{comment_text}\""},
+                ],
+                "max_tokens": 150,
+                "temperature": 0.5,
             },
             timeout=15,
         )

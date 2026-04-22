@@ -12,6 +12,43 @@ logger = logging.getLogger(__name__)
 
 TELEGRAM_API = "https://api.telegram.org/bot{token}/{method}"
 
+SYSTEM_PROMPT = """Siz "O'quv Markazi" ning Telegram boti — virtual yordamchisisiz.
+
+QOIDALAR (qat'iy bajaring):
+1. FAQAT o'quv markazi mavzularida gapiring: kurslar, narxlar, dars jadvali, o'qituvchilar, ro'yxatdan o'tish, sinov darsi.
+2. Siyosat, din, sport, yangiliklar, shaxsiy maslahat — HECH QANDAY javob bermang.
+3. Begona mavzuda savol bo'lsa: "Men faqat o'quv markazi haqida yordam bera olaman 😊" deying.
+4. Hech qachon narx, chegirma yoki kafolat va'da qilmang — bular uchun mutaxassisga yo'naltiring.
+5. Javob 2-3 gapdan oshmasin. O'zbek tilida. Emoji ishlating (1-2 ta).
+6. Agar foydalanuvchi telefon raqam bermasa — har doim so'rang."""
+
+
+def _get_ai_response(user_message: str) -> str | None:
+    """OpenAI orqali mavzu cheklangan AI javob."""
+    api_key = getattr(settings, "OPENAI_API_KEY", "")
+    if not api_key:
+        return None
+    try:
+        resp = req_lib.post(
+            "https://api.openai.com/v1/chat/completions",
+            headers={"Authorization": f"Bearer {api_key}", "Content-Type": "application/json"},
+            json={
+                "model": "gpt-4o-mini",
+                "messages": [
+                    {"role": "system", "content": SYSTEM_PROMPT},
+                    {"role": "user",   "content": user_message},
+                ],
+                "max_tokens": 150,
+                "temperature": 0.5,
+            },
+            timeout=15,
+        )
+        resp.raise_for_status()
+        return resp.json()["choices"][0]["message"]["content"].strip()
+    except Exception as e:
+        logger.error("OpenAI Telegram xato: %s", e)
+        return None
+
 
 def _bot_token() -> str:
     return getattr(settings, "TELEGRAM_BOT_TOKEN", "")
@@ -155,20 +192,24 @@ def _handle_update(update: dict):
             )
         return
 
-    # Boshqa xabar
+    # Boshqa xabar — AI javob (mavzu cheklangan)
     from apps.integrations.models import TelegramActivity
     TelegramActivity.objects.create(
-        telegram_id=telegram_id if (telegram_id := chat_id) else chat_id,
+        telegram_id=chat_id,
         username=username,
         full_name=full_name,
         message_text=text[:500],
         status=TelegramActivity.Status.WAITING,
     )
-    _send_message(
-        chat_id,
-        "📱 Telefon raqamingizni yuboring.\n"
-        "Masalan: <code>+998 90 123 45 67</code>",
-    )
+    ai_reply = _get_ai_response(text)
+    if ai_reply:
+        _send_message(chat_id, ai_reply)
+    else:
+        _send_message(
+            chat_id,
+            "📱 Telefon raqamingizni yuboring.\n"
+            "Masalan: <code>+998 90 123 45 67</code>",
+        )
 
 
 def _get_bot_username() -> str:
