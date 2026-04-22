@@ -54,12 +54,21 @@ def _bot_token() -> str:
     return getattr(settings, "TELEGRAM_BOT_TOKEN", "")
 
 
+PHONE_KEYBOARD = {
+    "keyboard": [[{"text": "📱 Telefon raqamimni ulashish", "request_contact": True}]],
+    "resize_keyboard": True,
+    "one_time_keyboard": True,
+}
+
+REMOVE_KEYBOARD = {"remove_keyboard": True}
+
+
 def _send_message(chat_id: int, text: str, reply_markup=None) -> bool:
     token = _bot_token()
     if not token:
         return False
     payload = {"chat_id": chat_id, "text": text, "parse_mode": "HTML"}
-    if reply_markup:
+    if reply_markup is not None:
         payload["reply_markup"] = json.dumps(reply_markup)
     try:
         url = TELEGRAM_API.format(token=token, method="sendMessage")
@@ -137,18 +146,18 @@ def _handle_update(update: dict):
     text      = message.get("text", "").strip()
 
     # /start buyrug'i
-    if text in ("/start", "/start@" + _get_bot_username()):
+    if text.startswith("/start"):
         _send_message(
             chat_id,
             f"Salom, <b>{first}</b>! 👋\n\n"
             "O'quv markazimizga xush kelibsiz! 🎓\n\n"
             "Mutaxassisimiz siz bilan bog'lanishi uchun "
-            "<b>telefon raqamingizni</b> yuboring.\n\n"
-            "📱 Masalan: <code>+998 90 123 45 67</code>",
+            "<b>telefon raqamingizni</b> ulashing 👇",
+            reply_markup=PHONE_KEYBOARD,
         )
         return
 
-    # Telefon raqam kontakt orqali
+    # Telefon raqam kontakt orqali (tugma bosilganda)
     contact = message.get("contact")
     if contact:
         phone = contact.get("phone_number", "")
@@ -162,6 +171,7 @@ def _handle_update(update: dict):
                     f"✅ Siz allaqachon ro'yxatdan o'tgansiz!\n"
                     f"📞 Raqam: <code>{phone}</code>\n\n"
                     "Tez orada mutaxassisimiz bog'lanadi! 🎓",
+                    reply_markup=REMOVE_KEYBOARD,
                 )
             else:
                 _send_message(
@@ -169,6 +179,7 @@ def _handle_update(update: dict):
                     f"✅ Rahmat! Raqamingiz qabul qilindi.\n"
                     f"📞 <code>{phone}</code>\n\n"
                     "Mutaxassisimiz tez orada siz bilan bog'lanadi! 🎓",
+                    reply_markup=REMOVE_KEYBOARD,
                 )
         return
 
@@ -182,6 +193,7 @@ def _handle_update(update: dict):
                 f"✅ Bu raqam allaqachon tizimimizda bor!\n"
                 f"📞 <code>{phone}</code>\n\n"
                 "Mutaxassisimiz tez orada bog'lanadi! 🎓",
+                reply_markup=REMOVE_KEYBOARD,
             )
         else:
             _send_message(
@@ -189,6 +201,7 @@ def _handle_update(update: dict):
                 f"✅ Rahmat! Raqamingiz qabul qilindi.\n"
                 f"📞 <code>{phone}</code>\n\n"
                 "Mutaxassisimiz tez orada siz bilan bog'lanadi! 🎓",
+                reply_markup=REMOVE_KEYBOARD,
             )
         return
 
@@ -202,14 +215,8 @@ def _handle_update(update: dict):
         status=TelegramActivity.Status.WAITING,
     )
     ai_reply = _get_ai_response(text)
-    if ai_reply:
-        _send_message(chat_id, ai_reply)
-    else:
-        _send_message(
-            chat_id,
-            "📱 Telefon raqamingizni yuboring.\n"
-            "Masalan: <code>+998 90 123 45 67</code>",
-        )
+    reply_text = ai_reply or "📱 Telefon raqamingizni ulashing 👇"
+    _send_message(chat_id, reply_text, reply_markup=PHONE_KEYBOARD)
 
 
 def _get_bot_username() -> str:
