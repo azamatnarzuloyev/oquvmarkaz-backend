@@ -183,9 +183,12 @@ class InstagramWebhookView(APIView):
 
     def _handle_comment(self, value: dict, access_token: str):
         """Post commentiga AI javob berish."""
+        from apps.integrations.models import InstagramActivity
+
         comment_id   = value.get("id")
         comment_text = value.get("text", "")
-        sender_id    = value.get("from", {}).get("id")
+        sender_id    = value.get("from", {}).get("id", "")
+        sender_name  = value.get("from", {}).get("username", "")
 
         if not comment_id or not comment_text:
             return
@@ -193,20 +196,36 @@ class InstagramWebhookView(APIView):
         logger.info("Comment keldi: %s — '%s'", sender_id, comment_text[:50])
 
         ai_reply = _get_ai_reply(comment_text)
-        _reply_comment(comment_id, ai_reply, access_token)
+        replied  = _reply_comment(comment_id, ai_reply, access_token)
 
-        # DM ham yuborish
+        dm_sent = False
         if sender_id:
             dm_text = (
                 "Salom! 😊 Izohingiz uchun rahmat!\n"
                 "Batafsil ma'lumot olish uchun telefon raqamingizni yuboring — "
                 "mutaxassisimiz siz bilan bog'lanadi! 📚"
             )
-            _send_dm(sender_id, dm_text, access_token)
+            dm_sent = _send_dm(sender_id, dm_text, access_token)
+
+        status = InstagramActivity.Status.REPLIED if replied else InstagramActivity.Status.FAILED
+        if dm_sent:
+            status = InstagramActivity.Status.DM_SENT
+
+        InstagramActivity.objects.create(
+            event_type   = InstagramActivity.EventType.COMMENT,
+            sender_id    = sender_id,
+            sender_name  = sender_name,
+            message_text = comment_text,
+            ai_reply     = ai_reply,
+            status       = status,
+        )
 
     def _handle_message(self, event: dict, access_token: str):
         """DM xabarini qayta ishlash — telefon raqam izlash."""
-        sender_id   = event.get("sender", {}).get("id")
+        from apps.integrations.models import InstagramActivity
+
+        sender_id   = event.get("sender", {}).get("id", "")
+        sender_name = event.get("sender", {}).get("name", "")
         message_obj = event.get("message", {})
         text        = message_obj.get("text", "")
 
@@ -216,19 +235,29 @@ class InstagramWebhookView(APIView):
         logger.info("DM keldi: %s — '%s'", sender_id, text[:50])
 
         phone = _extract_phone(text)
-        if phone:
-            sender_name = event.get("sender", {}).get("name", "")
-            _create_lead_from_instagram(sender_id, sender_name, phone, text)
+        lead  = None
 
+        if phone:
+            lead = _create_lead_from_instagram(sender_id, sender_name, phone, text)
             confirm_text = (
                 f"Rahmat! ✅ Raqamingiz qabul qilindi: {phone}\n"
                 "Tez orada mutaxassisimiz siz bilan bog'lanadi! 🎓"
             )
             _send_dm(sender_id, confirm_text, access_token)
+            status = InstagramActivity.Status.LEAD_CREATED
         else:
-            # Telefon raqam so'rash
             reply = (
                 "Salom! 😊 Biz siz bilan bog'lanish uchun telefon raqamingizni yuboring.\n"
                 "Masalan: +998 90 123 45 67 📱"
             )
             _send_dm(sender_id, reply, access_token)
+            status = InstagramActivity.Status.DM_SENT
+
+        InstagramActivity.objects.create(
+            event_type   = InstagramActivity.EventType.DM,
+            sender_id    = sender_id,
+            sender_name  = sender_name,
+            message_text = text,
+            status       = status,
+            lead         = lead,
+        )

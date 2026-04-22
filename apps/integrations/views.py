@@ -1,15 +1,16 @@
 from datetime import date, timedelta
 from django.db.models import Sum, Count
-from rest_framework import viewsets, status
+from rest_framework import viewsets, status, generics
 from rest_framework.decorators import action
 from rest_framework.response import Response
 from rest_framework.views import APIView
 from rest_framework.permissions import AllowAny
 from shared.permissions import IsAdminOrReception
-from .models import WebhookToken, AdStat
+from .models import WebhookToken, AdStat, InstagramActivity
 from .serializers import (
     WebhookTokenSerializer, AdStatSerializer,
     WebhookLeadPayloadSerializer, WebhookStatPayloadSerializer,
+    InstagramActivitySerializer,
 )
 
 
@@ -195,3 +196,19 @@ class WebhookStatUpdateView(APIView):
         stat.save()
 
         return Response({'success': True})
+
+
+class InstagramActivityListView(generics.ListAPIView):
+    """Instagram comment/DM faoliyat logi."""
+    permission_classes = (IsAdminOrReception,)
+    serializer_class   = InstagramActivitySerializer
+
+    def get_queryset(self):
+        qs = InstagramActivity.objects.select_related('lead').all()
+        event_type = self.request.query_params.get('event_type')
+        if event_type:
+            qs = qs.filter(event_type=event_type)
+        status_filter = self.request.query_params.get('status')
+        if status_filter:
+            qs = qs.filter(status=status_filter)
+        return qs

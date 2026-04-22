@@ -34,6 +34,42 @@ class WebhookToken(models.Model):
         return f'{self.name} ({self.get_platform_display()})'
 
 
+class InstagramActivity(models.Model):
+    """Instagram comment/DM loglari."""
+
+    class EventType(models.TextChoices):
+        COMMENT = 'comment', 'Comment'
+        DM      = 'dm',      'Direct Message'
+
+    class Status(models.TextChoices):
+        REPLIED     = 'replied',     'Javob berildi'
+        DM_SENT     = 'dm_sent',     'DM yuborildi'
+        LEAD_CREATED = 'lead_created', 'Lead yaratildi'
+        FAILED      = 'failed',      'Xato'
+
+    event_type    = models.CharField(max_length=10, choices=EventType.choices)
+    sender_id     = models.CharField(max_length=50, blank=True)
+    sender_name   = models.CharField(max_length=100, blank=True)
+    message_text  = models.TextField(blank=True)
+    ai_reply      = models.TextField(blank=True)
+    status        = models.CharField(max_length=20, choices=Status.choices)
+    lead          = models.ForeignKey(
+        'leads.Lead',
+        null=True, blank=True,
+        on_delete=models.SET_NULL,
+        related_name='instagram_activities',
+    )
+    created_at    = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        verbose_name        = 'Instagram faoliyat'
+        verbose_name_plural = 'Instagram faoliyatlar'
+        ordering            = ['-created_at']
+
+    def __str__(self):
+        return f'{self.get_event_type_display()} — {self.sender_name or self.sender_id}'
+
+
 class AdStat(models.Model):
     """Har kunlik reklama statistikasi (impressions + clicks)."""
 

@@ -1,5 +1,5 @@
 from rest_framework import serializers
-from .models import WebhookToken, AdStat
+from .models import WebhookToken, AdStat, InstagramActivity
 
 
 class WebhookTokenSerializer(serializers.ModelSerializer):
@@ -51,3 +51,18 @@ class WebhookStatPayloadSerializer(serializers.Serializer):
     date        = serializers.DateField()
     impressions = serializers.IntegerField(min_value=0, default=0)
     clicks      = serializers.IntegerField(min_value=0, default=0)
+
+
+class InstagramActivitySerializer(serializers.ModelSerializer):
+    lead_name  = serializers.CharField(source='lead.full_name', read_only=True, default=None)
+    lead_phone = serializers.CharField(source='lead.phone', read_only=True, default=None)
+    lead_id    = serializers.IntegerField(source='lead.id', read_only=True, default=None)
+
+    class Meta:
+        model  = InstagramActivity
+        fields = [
+            'id', 'event_type', 'sender_id', 'sender_name',
+            'message_text', 'ai_reply', 'status',
+            'lead_id', 'lead_name', 'lead_phone',
+            'created_at',
+        ]
