@@ -158,7 +158,8 @@ INSTAGRAM_WEBHOOK_VERIFY_TOKEN = config('INSTAGRAM_WEBHOOK_VERIFY_TOKEN', defaul
 # ── Telegram Bot ─────────────────────────────────────────────────
 TELEGRAM_BOT_TOKEN = config('TELEGRAM_BOT_TOKEN', default='')
 
-# ── AI (Gemini) ──────────────────────────────────────────────────
+# ── AI ───────────────────────────────────────────────────────────
+OPENAI_API_KEY = config('OPENAI_API_KEY', default='')
 GEMINI_API_KEY = config('GEMINI_API_KEY', default='')
 
 # ── OpenAPI ──────────────────────────────────────────────────────

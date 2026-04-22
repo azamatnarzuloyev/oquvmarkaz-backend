@@ -55,29 +55,33 @@ def _reply_comment(comment_id: str, text: str, access_token: str) -> bool:
 
 
 def _get_ai_reply(comment_text: str) -> str:
-    """Gemini API orqali AI javob generatsiya qilish."""
-    api_key = getattr(settings, "GEMINI_API_KEY", None)
+    """OpenAI GPT orqali AI javob generatsiya qilish."""
+    api_key = getattr(settings, "OPENAI_API_KEY", None)
     if not api_key:
         return _default_reply()
 
-    url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key={api_key}"
-    prompt = f"""Siz o'quv markazining virtual yordamchisisiz.
-Foydalanuvchi Instagram postiga shunday izoh qoldirdi: "{comment_text}"
-
-Qisqa, do'stona va professional javob yozing (2-3 gap).
-O'zbek tilida. Ularga DM (xabar) yuborishni so'rang va telefon raqamlarini so'rang."""
-
+    prompt = (
+        f"Siz o'quv markazining virtual yordamchisisiz.\n"
+        f"Foydalanuvchi Instagram postiga shunday izoh qoldirdi: \"{comment_text}\"\n\n"
+        "Qisqa, do'stona va professional javob yozing (2-3 gap). "
+        "O'zbek tilida. Ularga DM (xabar) yuborishni so'rang."
+    )
     try:
         resp = requests.post(
-            url,
-            json={"contents": [{"parts": [{"text": prompt}]}]},
+            "https://api.openai.com/v1/chat/completions",
+            headers={"Authorization": f"Bearer {api_key}", "Content-Type": "application/json"},
+            json={
+                "model": "gpt-4o-mini",
+                "messages": [{"role": "user", "content": prompt}],
+                "max_tokens": 200,
+                "temperature": 0.7,
+            },
             timeout=15,
         )
         resp.raise_for_status()
-        data = resp.json()
-        return data["candidates"][0]["content"]["parts"][0]["text"].strip()
+        return resp.json()["choices"][0]["message"]["content"].strip()
     except Exception as e:
-        logger.error("Gemini API xato: %s", e)
+        logger.error("OpenAI API xato: %s", e)
         return _default_reply()
 
 
